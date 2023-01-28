@@ -1,0 +1,49 @@
+{
+    "manifest_version": 3,
+    "name": "apsdevtool",
+    "description": "aps平台前端开发者插件",
+    "version": "0.0.1",
+    //"options_page": "options.html",
+    "devtools_page": "devtools.html",
+
+    "action": {
+        //"default_icon": ""
+        "default_popup": "popup.html"
+    },
+    // 权限申请
+	"permissions":
+	[
+		"contextMenus", // 右键菜单
+		"tabs", // 标签
+		"notifications", // 通知
+		"webRequest", // web请求
+		"webRequestBlocking", // 阻塞式web请求
+		"storage", // 插件本地存储
+		"http://*/*", // 可以通过executeScript或者insertCSS访问的网站
+		"https://*/*" // 可以通过executeScript或者insertCSS访问的网站
+	],
+    "content_security_policy": {
+        "extension_page":"script-src 'self' 'wasm-unsafe-eval'; object-src 'self'" 
+    },
+    "background": {
+        "service_worker": "js/background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["*://*/*"],
+            "css": ["css/content.css"],
+            "js": ["js/content.js"],
+            "run_at": "document_end"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["fonts/*"],
+            "matches": ["<all_urls>"]
+        },
+        {
+            "resources": ["js/inject.js"],
+            "matches": ["<all_urls>"]
+        }
+    ]
+}
