@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "apsdevtool",
     "description": "aps平台前端开发者插件",
-    "version": "0.0.1",
+    "version": "0.0.2",
     //"options_page": "options.html",
     "devtools_page": "devtools.html",
 

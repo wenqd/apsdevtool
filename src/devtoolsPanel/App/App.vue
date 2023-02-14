@@ -16,7 +16,6 @@ export default {
         }
     },
     mounted() {
-        debugger
         console.log('面板mounted')
     }
 }
