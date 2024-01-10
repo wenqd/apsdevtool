@@ -14,6 +14,8 @@
                     :inline="true"
                     :model="toolConf"
                     class="demo-form-inline"
+                    label-position="right"
+                    label-width="190px"
                 >
                     <el-form-item label="强制打开vue开发者面板">
                         <el-switch v-model="toolConf.openvuedevtool"></el-switch>
@@ -28,12 +30,14 @@
 </template>
 
 <script>
+/* eslint-disable */
+
 export default {
     name: "App",
     data(){
         return {
             toolConf:{//工具配置信息
-                openvuedevtool:false,//强制打开vue开发者面板
+                openvuedevtool:true,//强制打开vue开发者面板
                 apsonlinejs:true//调试APS平台在线脚本
             }
         }
@@ -41,11 +45,8 @@ export default {
     watch:{
         toolConf:{
             handler(newval){
-                chrome.storage.local.set({apsdevtool_conf: JSON.stringify(this.toolConf)}, function() {
-                    console.log('Value is set to ' + newval);
-                });
-                chrome.storage.local.get(['apsdevtool_conf'], function(result) {
-                    console.log('Value currently is 12' + result.apsdevtool_conf);
+                chrome.storage.sync.set({apsdevtool_conf: JSON.stringify(this.toolConf)}).then(() => {
+                    console.log("Value is set");
                 });
             },
             deep:true
@@ -53,7 +54,7 @@ export default {
     },
     mounted(){
         let v_this = this
-        chrome.storage.local.get(['apsdevtool_conf'], function(result) {
+        chrome.storage.sync.get(['apsdevtool_conf']).then((result)=>{
             if(result.apsdevtool_conf){
                 v_this.toolConf = JSON.parse(result.apsdevtool_conf)
                 console.log('已从storage里取到历史配置数据：' + result.apsdevtool_conf);
@@ -85,6 +86,6 @@ export default {
 }
 
 .box-card {
-    width: 480px;
+    width: 330px;
 }
 </style>

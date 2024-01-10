@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "apsdevtool",
     "description": "aps平台前端开发者插件",
-    "version": "0.0.2",
+    "version": "0.1.2",
     //"options_page": "options.html",
     "devtools_page": "devtools.html",
 
@@ -11,7 +11,7 @@
         "default_popup": "popup.html"
     },
     // 权限申请
-	"permissions":
+	"permissions": 
 	[
 		"contextMenus", // 右键菜单
 		"tabs", // 标签
@@ -45,5 +45,10 @@
             "resources": ["js/inject.js"],
             "matches": ["<all_urls>"]
         }
-    ]
+    ],
+    "icons": {
+        "16": "assets/icon.png",
+        "48": "assets/icon.png",
+        "128": "assets/icon.png"
+    }
 }

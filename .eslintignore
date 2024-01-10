@@ -2,6 +2,7 @@ build/*.js
 src/assets
 public
 dist
+src/*.js
 src/views/xmodel/pagemodel/report/js/*.js
 src/views/xmodel/pagemodel/report/*.vue
 src/views/xmodel/pagemodel/report/query/*.vue

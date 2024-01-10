@@ -4,12 +4,17 @@
             <div slot="header" class="clearfix">
                 <span style="font-size: 16px;">Aps Dev Tools 前端开发者工具</span>
                 <el-button style="float: right; padding: 3px 0" type="text"
-                    >更多配置</el-button
+                    >配置</el-button
                 >
             </div>
-            <div v-for="o in 4" :key="o" class="text item">
-                {{ "列表内容 " + o }}
-            </div>
+            <el-form  label-width="80px" :model="formData">
+                <el-form-item label="强制开启vue插件">
+                    <el-switch v-model="formData.openVueDevTool"></el-switch>
+                </el-form-item>
+                <el-form-item label="在线脚本调试增强">
+                    <el-switch v-model="formData.jsDebug"></el-switch>
+                </el-form-item>
+            </el-form>
         </el-card>
     </div>
 </template>
@@ -17,6 +22,14 @@
 <script>
 export default {
     name: "app",
+    data() {
+        return {
+            formData: {
+                openVueDevTool: true,
+                jsDebug: true
+            }
+        };
+    }
 };
 </script>
 
@@ -37,10 +50,9 @@ export default {
     content: "";
   }
   .clearfix:after {
-    clear: both
   }
 
   .box-card {
-    width: 480px;
+    width: 280px;
   }
 </style>

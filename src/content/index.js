@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import {
     Notification
 } from 'element-ui'

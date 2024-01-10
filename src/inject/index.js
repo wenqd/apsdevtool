@@ -1,50 +1,157 @@
-window.ApsDevTools = { // 开发者工具全局配置
-    onlineJs: {
-        debug: true// 是否开启在线脚本调试
-    }
-}
-
+/* eslint-disable */
 // 强制开启vue开发者工具
 function openVueTool() {
-    // 在方法中执行，避免污染全局变量
-    // 开启vue2 production调试的方法
-    // 1.找vue实例，可以说99%的应用是用的app.__vue__
-    // 如果实在找不到,那么就到找到任意组件，用组件元素.__vue__.$root来获取
-    var vue = app.__vue__
 
-    // 2.vue构造函数
-    var constructor = vue.__proto__.constructor
+    var main = (main_main);
 
-    // 3.Vue有多级，要找到最顶级的
-    var Vue = constructor
-    while (Vue.super) {
-        Vue = Vue.super
+
+    const _global = typeof unsafeWindow === 'object' && unsafeWindow || globalThis;
+
+    const _devtoolHook = _global.__VUE_DEVTOOLS_GLOBAL_HOOK__;
+
+    function main_main() {
+        if (!_devtoolHook) {
+            console.warn('No Vue Devtools hook found', _global.location);
+            return;
+        }
+
+        observeVueRoot(function (app, disconnect) {
+            emitDevtoolVue2Hooks(app);
+        }, function (app, disconnect) {
+            emitDevtoolVue3Hooks(app);
+        });
     }
-    console.log(Vue)
 
-    // 4.找到config，并且把devtools设置成true
-    Vue.config.devtools = true
+    function emitDevtoolVue2Hooks(app) {
+        let Vue = app.constructor;
+        const store = app.$store;
 
-    // 5.注册到Vue DevTool上
-    var hook = window.__VUE_DEVTOOLS_GLOBAL_HOOK__
-    hook.emit('init', Vue)
+        while (Vue.super) {
+            Vue = Vue.super;
+        }
 
-    // 6.如果有vuex store，也注册//这部分代码参考了https://blog.csdn.net/weixin_34352449/article/details/91466542
-    if (vue.$store) {
-        var store = vue.$store
-        store._devtoolHook = hook
-        hook.emit('vuex:init', store)
-        hook.on('vuex:travel-to-state', function(targetState) {
-            store.replaceState(targetState)
-        })
-        store.subscribe(function(mutation, state) {
-            hook.emit('vuex:mutation', mutation, state)
-        })
+        Vue.config.devtools = true;
+        console.info('enabling devtools for Vue instance', app);
+
+        _devtoolHook.emit('init', Vue);
+
+        if (store) {
+            console.info('enabling devtools for Vuex instance', store);
+            devtoolStorePlugin(store, _devtoolHook);
+        }
     }
+
+    function emitDevtoolVue3Hooks(app) {
+        if (!Array.isArray(_devtoolHook.apps)) return;
+        if (_devtoolHook.apps.includes(app)) return;
+        let version = app.version;
+
+        if (!version) {
+            console.warn('no Vue version detected, fallback to "3.0.0"');
+            version = '3.0.0';
+        }
+
+        console.info('enabling devtools for Vue 3 instance', app);
+
+        const types = {
+            Fragment: undefined,
+            Text: undefined,
+            Comment: undefined,
+            Static: undefined
+        };
+
+        _devtoolHook.emit('app:init', app, version, types);
+
+        const unmount = app.unmount.bind(app);
+
+        app.unmount = function () {
+            _devtoolHook.emit('app:unmount', app);
+            unmount();
+        };
+    }
+
+    function checkVue2Instance(target) {
+        const vue = target && target.__vue__;
+        return !!(vue && typeof vue === 'object' && vue._isVue && typeof vue.constructor === 'function');
+    }
+
+    function checkVue3Instance(target) {
+        const app = target && target.__vue_app__;
+        return !!app;
+    }
+
+    function noop() { }
+
+    function observeVueRoot(callbackVue2, callbackVue3) {
+        if (typeof callbackVue2 !== 'function') {
+            callbackVue2 = noop;
+        }
+
+        if (typeof callbackVue3 !== 'function') {
+            callbackVue3 = noop;
+        }
+
+        const vue2RootSet = new WeakSet();
+        const vue3RootSet = new WeakSet();
+        const observer = new MutationObserver((mutations, observer) => {
+            const disconnect = observer.disconnect.bind(observer);
+
+            for (const {
+                target
+            } of mutations) {
+                if (!target) {
+                    return;
+                } else if (checkVue2Instance(target)) {
+                    const inst = target.__vue__;
+                    const root = inst.$parent ? inst.$root : inst;
+
+                    if (vue2RootSet.has(root)) {
+                        continue;
+                    }
+
+                    vue2RootSet.add(root);
+                    callbackVue2(root, disconnect);
+                } else if (checkVue3Instance(target)) {
+                    const app = target.__vue_app__;
+
+                    if (vue3RootSet.has(app)) {
+                        continue;
+                    }
+
+                    vue3RootSet.add(app);
+                    callbackVue3(app, disconnect);
+                }
+            }
+        });
+        observer.observe(document.documentElement, {
+            attributes: true,
+            subtree: true,
+            childList: true
+        });
+        return observer;
+    }
+
+    function devtoolStorePlugin(store, devtoolHook) {
+        store._devtoolHook = devtoolHook;
+        devtoolHook.emit('vuex:init', store);
+        devtoolHook.on('vuex:travel-to-state', targetState => {
+            store.replaceState(targetState);
+        });
+        store.subscribe((mutation, state) => {
+            devtoolHook.emit('vuex:mutation', mutation, state);
+        });
+    }
+
+    try {
+        main();
+    } catch (e) {
+        console.error(e);
+    }
+
 }
 openVueTool()
 let ajax_tools_space = {
-    ajaxToolsSwitchOn: true,
+    ajaxToolsSwitchOn: false,
     ajaxToolsSwitchOnNot200: true,
     ajaxDataList: [],
     originalXHR: window.XMLHttpRequest,
@@ -67,8 +174,8 @@ let ajax_tools_space = {
                 overrideText = responseText
             }
         } catch (e) {
-        // const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-        // const returnText = await (new AsyncFunction(responseText))();
+            // const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            // const returnText = await (new AsyncFunction(responseText))();
             const returnText = (new Function(responseText))(args)
             if (returnText) {
                 overrideText = typeof returnText === 'object' ? JSON.stringify(returnText) : returnText
@@ -84,14 +191,14 @@ let ajax_tools_space = {
         const keyValueArr = paramStr.split('&')
         let keyValueObj = {}
         keyValueArr.forEach((item) => {
-        // 保证中间不会把=给忽略掉
+            // 保证中间不会把=给忽略掉
             const itemArr = item.replace('=', '〓').split('〓')
             const itemObj = { [itemArr[0]]: itemArr[1] }
             keyValueObj = Object.assign(keyValueObj, itemObj)
         })
         return keyValueObj
     },
-    myXHR: function() {
+    myXHR: function () {
         const modifyResponse = () => {
             const interfaceList = []
             ajax_tools_space.ajaxDataList.forEach((item) => {
@@ -145,25 +252,25 @@ let ajax_tools_space = {
                         //modifyResponse()
                         // 覆盖响应结果
                         let pp = this.responseURL.includes('jsfile/www/upload')
-                        if(pp){
+                        if (pp) {
                             let fullfilename = this.responseURL.replace(/[^\\\/]*[\\\/]+/g, '')
                             var postfix = /\.[^\.]+/.exec(fullfilename);//获取⽂件的后缀
-                            const filename = fullfilename.substr(0,postfix['index']);//获取没有后缀的名称
-                            this.responseText = this.response + '\n//@ sourceURL=apsdevtools('+filename+').js \n\nconsole.info("已启用apsdevtool在线脚本调试工具")'//overrideText;
-                            this.response = this.response + '\n//@ sourceURL=apsdevtools('+filename+').js \n\nconsole.info("已启用apsdevtool在线脚本调试工具")'  //overrideText;
-                        }else{
+                            const filename = fullfilename.substr(0, postfix['index']);//获取没有后缀的名称
+                            this.responseText = this.response + '\n//@ sourceURL=apsdevtools(' + filename + ').js \n\nconsole.info("已启用apsdevtool在线脚本调试工具")'//overrideText;
+                            this.response = this.response + '\n//@ sourceURL=apsdevtools(' + filename + ').js \n\nconsole.info("已启用apsdevtool在线脚本调试工具")'  //overrideText;
+                        } else {
                             modifyResponse()
                         }
-                        
+
                     }
                     this.onreadystatechange && this.onreadystatechange.apply(this, args)
                 }
                 continue
             } else if (attr === 'onload') {
                 xhr.onload = (...args) => {
-                  // 开启拦截
-                  modifyResponse();
-                  this.onload && this.onload.apply(this, args);
+                    // 开启拦截
+                    modifyResponse();
+                    this.onload && this.onload.apply(this, args);
                 }
                 continue;
             } else if (attr === 'open') {
@@ -200,8 +307,8 @@ let ajax_tools_space = {
         }
     },
     originalFetch: window.fetch.bind(window),
-    myFetch: function(...args) {
-        const getOriginalResponse = async(stream) => {
+    myFetch: function (...args) {
+        const getOriginalResponse = async (stream) => {
             let text = ''
             const decoder = new TextDecoder('utf-8')
             const reader = stream.getReader()
@@ -216,7 +323,7 @@ let ajax_tools_space = {
             }
             return await reader.read().then(processData)
         }
-        return ajax_tools_space.originalFetch(...args).then(async(response) => {
+        return ajax_tools_space.originalFetch(...args).then(async (response) => {
             let overrideText
             const interfaceList = []
             ajax_tools_space.ajaxDataList.forEach((item) => {
@@ -268,7 +375,7 @@ let ajax_tools_space = {
                     statusText: response.statusText
                 })
                 const responseProxy = new Proxy(newResponse, {
-                    get: function(target, name) {
+                    get: function (target, name) {
                         switch (name) {
                             case 'body':
                             case 'bodyUsed':
@@ -293,8 +400,7 @@ let ajax_tools_space = {
     }
 }
 
-if (ajax_tools_space.ajaxToolsSwitchOn) {
-    console.log("拦截信息，，，")
+if (true) {//临时处理
     window.XMLHttpRequest = ajax_tools_space.myXHR
     window.fetch = ajax_tools_space.myFetch
 } else {
