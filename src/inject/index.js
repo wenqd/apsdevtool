@@ -252,7 +252,10 @@ let ajax_tools_space = {
                         //modifyResponse()
                         // 覆盖响应结果
                         let pp = this.responseURL.includes('jsfile/www/upload')
-                        if (pp) {
+                        //获取地址栏url参数并判断是否是开发模式 是否包含/xmodel/index 路径
+                        let url = window.location.href;
+                        let pp2 = url.includes('/xmodel/index')
+                        if (pp&&!pp2) {
                             let fullfilename = this.responseURL.replace(/[^\\\/]*[\\\/]+/g, '')
                             var postfix = /\.[^\.]+/.exec(fullfilename);//获取⽂件的后缀
                             const filename = fullfilename.substr(0, postfix['index']);//获取没有后缀的名称
